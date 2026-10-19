@@ -1298,11 +1298,17 @@ def render_evidence_appendix(result: TestRunResult) -> str:
             actual_display = ev.actual_response or ev.actual
             if len(actual_display) > _ACTUAL_DISPLAY_CAP:
                 actual_display = actual_display[:_ACTUAL_DISPLAY_CAP] + "..."
-            ev_status = "PASS" if ev.passed else "FAIL"
             actual_line = f"`{actual_display}`"
+            # Match the interactive scorecard: an ungraded item or an operator
+            # diagnostic is not a failed answer, whatever its `passed` default.
+            if ev.is_diagnostic:
+                ev_status = "DIAGNOSTIC"
+            elif ev.extraction_error is not None:
+                ev_status = "NOT JUDGED" if br.findings_only else "GRADING UNAVAILABLE"
+            else:
+                ev_status = "PASS" if ev.passed else "FAIL"
             if br.findings_only:
-                # An item the judge never graded is not a fail; a transcript keeps its own lines.
-                ev_status = "NOT JUDGED" if ev.extraction_error is not None else ev_status
+                # A transcript keeps its own lines.
                 actual_line = actual_markdown(actual_display)
             judges = scrub_secrets(describe_votes(ev.details))
 
